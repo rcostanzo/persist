@@ -1149,6 +1149,7 @@ public final class Persist {
 			Log.debug(Log.PROFILING, "executeUpdate in [" + (end - begin) + "ms] for sql [" + sql + "]");
 		}
 
+        closePreparedStatement(stmt);
 		return result;
 	}
 
@@ -1893,6 +1894,10 @@ public final class Persist {
 			final long end = System.currentTimeMillis();
 			Log.debug(Log.PROFILING, "readMapIterator in [" + (end - begin) + "ms]");
 		}
+
+        if(closePreparedStatementsAfterRead) {
+            closePreparedStatement(stmt);
+        }
 
 		return ret;
 	}
