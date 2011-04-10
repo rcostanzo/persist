@@ -2,6 +2,8 @@
 create database `persist`;
 use persist;
 grant all privileges on persist.* to 'persist'@'%' identified by 'persist';
+grant all privileges on persist.* to 'persist'@'localhost' identified by 'persist';
+flush privileges;
 
 create table simple (
 	id int auto_increment,

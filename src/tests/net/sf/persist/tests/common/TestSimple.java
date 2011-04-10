@@ -18,11 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.sf.persist.DefaultNameGuesser;
-import net.sf.persist.Persist;
-import net.sf.persist.PersistException;
-import net.sf.persist.Result;
-import net.sf.persist.TableMapping;
+import net.sf.persist.*;
 import net.sf.persist.tests.framework.ConnectionHelper;
 import net.sf.persist.tests.framework.DynamicBean;
 
@@ -293,16 +289,17 @@ public abstract class TestSimple {
 		Simple simple2 = buildSimple();
 		Simple simple3 = buildSimple();
 		persist.insertBatch(simple1, simple2, simple3);
-		List s = new ArrayList();
+		List<Simple> s = new ArrayList<Simple>();
 		s.add(simple1);
 		s.add(simple2);
 		s.add(simple3);
 
-		Iterator<Simple> i = persist.readIterator(Simple.class);
-		List si = new ArrayList();
+		ResultSetIterator<Simple> i = persist.readIterator(Simple.class);
+		List<Simple> si = new ArrayList<Simple>();
 		while (i.hasNext()) {
 			si.add(i.next());
 		}
+        i.close();
 
 		assertTrue(s.containsAll(si));
 	}
@@ -367,11 +364,11 @@ public abstract class TestSimple {
 		persist.insertBatch(simple1, simple2, simple3);
 		Simple[] simpleArray = new Simple[] { simple1, simple2, simple3 };
 
-		Set<Simple> simpleSet = new HashSet();
+		Set<Simple> simpleSet = new HashSet<Simple>();
 
-		Iterator i = persist.readMapIterator("select * from simple");
+		ResultSetIterator<Map<String, Object>> i = persist.readMapIterator("select * from simple");
 		while (i.hasNext()) {
-			Map<String, Object> m = (Map) i.next();
+			Map<String, Object> m = i.next();
 			for (int n = 0; n < 3; n++) {
 				if (simpleArray[n].getIntCol() == ((Number) m.get("int_col")).intValue()
 						&& simpleArray[n].getStringCol().equals((String) m.get("string_col"))) {
@@ -379,6 +376,7 @@ public abstract class TestSimple {
 				}
 			}
 		}
+        i.close();
 
 		assertEquals(3, simpleSet.size());
 	}

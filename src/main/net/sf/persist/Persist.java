@@ -15,7 +15,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,8 +61,8 @@ public final class Persist {
 	private PreparedStatement lastPreparedStatement = null;
 	private boolean closePreparedStatementsAfterRead = true;
 
-	private static ConcurrentMap<String, ConcurrentMap<Class, Mapping>> mappingCaches = new ConcurrentHashMap();
-	private static ConcurrentMap<String, NameGuesser> nameGuessers = new ConcurrentHashMap();
+	private static ConcurrentMap<String, ConcurrentMap<Class, Mapping>> mappingCaches = new ConcurrentHashMap<String, ConcurrentMap<Class, Mapping>>();
+	private static ConcurrentMap<String, NameGuesser> nameGuessers = new ConcurrentHashMap<String, NameGuesser>();
 
 	private static final String DEFAULT_CACHE = "default cache";
 
@@ -71,7 +70,7 @@ public final class Persist {
 	private NameGuesser nameGuesser = null;
 
 	static {
-		mappingCaches.put(DEFAULT_CACHE, new ConcurrentHashMap());
+		mappingCaches.put(DEFAULT_CACHE, new ConcurrentHashMap<Class, Mapping>());
 		nameGuessers.put(DEFAULT_CACHE, new DefaultNameGuesser());
 
 		if (Log.isDebugEnabled(Log.ENGINE)) {
@@ -135,7 +134,7 @@ public final class Persist {
 		nameGuessers.put(cacheName, nameGuesser);
 
 		// purge mappings cache so that name mappings are coherent
-		mappingCaches.put(cacheName, new ConcurrentHashMap());
+		mappingCaches.put(cacheName, new ConcurrentHashMap<Class, Mapping>());
 
 		if (Log.isDebugEnabled(Log.ENGINE)) {
 			Log.debug(Log.ENGINE, "Name guesser set for cache [" + cacheName + "]");
@@ -195,7 +194,7 @@ public final class Persist {
 		if (!mappingCaches.containsKey(cacheName)) {
 			// more than one map may end up being inserted here for the same
 			// cacheName, but this is not problematic
-			mappingCaches.put(cacheName, new ConcurrentHashMap());
+			mappingCaches.put(cacheName, new ConcurrentHashMap<Class, Mapping>());
 		}
 
 		final ConcurrentMap<Class, Mapping> mappingCache = mappingCaches.get(cacheName);
@@ -694,11 +693,14 @@ public final class Persist {
 	 * processed)
 	 * @param column column index in the result set (starting with 1)
 	 * @param type {@link java.lang.Class} of the object to be returned
+     *
+     * @return value or null
 	 * @since 1.0
 	 */
-	public static Object getValueFromResultSet(final ResultSet resultSet, final int column, final Class type) {
+    @SuppressWarnings("unchecked")
+	public static <T> T getValueFromResultSet(final ResultSet resultSet, final int column, final Class<T> type) {
 
-		Object value = null;
+		Object value;
 
 		try {
 
@@ -779,7 +781,7 @@ public final class Persist {
 					+ Log.objectToString(value) + "]");
 		}
 
-		return value;
+		return (T)value;
 	}
 
 	/**
@@ -944,9 +946,9 @@ public final class Persist {
 			final String columnName = columns[i];
 			final Method getter = mapping.getGetterForColumn(columnName);
 
-			Object value = null;
+			Object value;
 			try {
-				value = getter.invoke(object, new Object[] {});
+				value = getter.invoke(object);
 			} catch (Exception e) {
 				throw new PersistException("Could not access getter for column [" + columnName + "]", e);
 			}
@@ -967,15 +969,18 @@ public final class Persist {
 	 * @param objectClass type of the object to be returned
 	 * @param resultSet {@link java.sql.ResultSet} (positioned in the row to be
 	 * processed)
+     * @return object or null
+     * @throws SQLException exception executing sql
 	 * @see #isNativeType(Class)
 	 * @see #getValueFromResultSet(ResultSet, int, Class)
 	 * @since 1.0
 	 */
-	public Object loadObject(final Class objectClass, final ResultSet resultSet) throws SQLException {
+    @SuppressWarnings("unchecked")
+	public <T> T loadObject(final Class<T> objectClass, final ResultSet resultSet) throws SQLException {
 
 		final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
 
-		Object ret = null;
+		T ret;
 
 		// for native objects (int, long, String, Date, etc.)
 		if (isNativeType(objectClass)) {
@@ -1011,7 +1016,7 @@ public final class Persist {
 				final Object value = getValueFromResultSet(resultSet, i, type);
 
 				try {
-					setter.invoke(ret, new Object[] { value });
+					setter.invoke(ret, value);
 				} catch (Exception e) {
 					throw new PersistException("Error setting value [" + value + "]"
 							+ (value == null ? "" : " of type [" + value.getClass().getName() + "]") + " from column ["
@@ -1038,7 +1043,7 @@ public final class Persist {
 	 */
 	public static Map<String, Object> loadMap(final ResultSet resultSet) throws SQLException {
 
-		final Map ret = new LinkedHashMap();
+		final Map<String, Object> ret = new LinkedHashMap<String, Object>();
 		final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
 
 		for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
@@ -1069,7 +1074,7 @@ public final class Persist {
 				final Method setter = mapping.getSetterForColumn(columnName);
 				final Object key = result.getGeneratedKeys().get(i);
 				try {
-					setter.invoke(object, new Object[] { key });
+					setter.invoke(object, key);
 				} catch (Exception e) {
 					throw new PersistException("Could not invoke setter [" + setter + "] with auto generated key ["
 							+ key + "] of class [" + key.getClass().getName() + "]", e);
@@ -1086,8 +1091,8 @@ public final class Persist {
 	 * number of rows modified and auto-generated keys produced.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
-	 * 
+     * {@link #setParameters(java.sql.PreparedStatement, Object[])}
+	 *
 	 * @param objectClass Class of the object related with the query. Used to
 	 * determine the types of the auto-incremented keys. Only important if
 	 * autoGeneratedKeys contains values.
@@ -1097,6 +1102,7 @@ public final class Persist {
 	 * @param parameters Parameters to be used in the PreparedStatement.
 	 * @since 1.0
 	 */
+    @SuppressWarnings("unchecked")
 	public Result executeUpdate(final Class objectClass, final String sql, final String[] autoGeneratedKeys,
 			final Object...parameters) {
 
@@ -1122,18 +1128,18 @@ public final class Persist {
 			try {
 				final Mapping mapping = getMapping(objectClass);
 				final ResultSet resultSet = stmt.getGeneratedKeys();
-				for (int i = 0; i < autoGeneratedKeys.length; i++) {
-					resultSet.next();
+                for (String autoGeneratedKey : autoGeneratedKeys) {
+                    resultSet.next();
 
-					// get the auto-generated key using the ResultSet.get method
-					// that matches
-					// the bean setter parameter type
-					final Method setter = mapping.getSetterForColumn(autoGeneratedKeys[i]);
-					final Class type = setter.getParameterTypes()[0];
-					final Object value = Persist.getValueFromResultSet(resultSet, 1, type);
+                    // get the auto-generated key using the ResultSet.get method
+                    // that matches
+                    // the bean setter parameter type
+                    final Method setter = mapping.getSetterForColumn(autoGeneratedKey);
+                    final Class type = setter.getParameterTypes()[0];
+                    final Object value = Persist.getValueFromResultSet(resultSet, 1, type);
 
-					generatedKeys.add(value);
-				}
+                    generatedKeys.add(value);
+                }
 				resultSet.close();
 			} catch (SQLException e) {
 				throw new RuntimeSQLException("This JDBC driver does not support PreparedStatement.getGeneratedKeys()."
@@ -1157,8 +1163,8 @@ public final class Persist {
 	 * Executes an update and returns the number of rows modified.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
-	 * 
+     * {@link #setParameters(java.sql.PreparedStatement, Object[])}
+	 *
 	 * @param sql SQL code to be executed.
 	 * @param parameters Parameters to be used in the PreparedStatement.
 	 * @since 1.0
@@ -1339,8 +1345,8 @@ public final class Persist {
 	 * instance, a {@link PersistException} will be thrown.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
-	 * 
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
+	 *
 	 * @since 1.0
 	 */
 	public <T> T read(final Class<T> objectClass, final String sql, final Object...parameters) {
@@ -1357,7 +1363,7 @@ public final class Persist {
 	 * will be thrown.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
 	 * @since 1.0
 	 */
@@ -1390,7 +1396,7 @@ public final class Persist {
 			begin = System.currentTimeMillis();
 		}
 
-		Object ret = null;
+		T ret = null;
 		try {
 			if (resultSet.next()) {
 				ret = loadObject(objectClass, resultSet);
@@ -1408,7 +1414,7 @@ public final class Persist {
 					+ objectClass.getSimpleName() + "]");
 		}
 
-		return (T) ret;
+		return ret;
 	}
 
 	/**
@@ -1440,7 +1446,7 @@ public final class Persist {
 			begin = System.currentTimeMillis();
 		}
 
-		final List<T> ret = new ArrayList();
+		final List<T> ret = new ArrayList<T>();
 		try {
 			while (resultSet.next()) {
 				ret.add((T) loadObject(objectClass, resultSet));
@@ -1467,7 +1473,7 @@ public final class Persist {
 	 * thrown.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
 	 * @since 1.0
 	 */
@@ -1490,13 +1496,13 @@ public final class Persist {
 	 * instance, a {@link PersistException} will be thrown.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
 	 * @since 1.0
 	 */
 	public <T> List<T> readList(final Class<T> objectClass, final String sql, final Object...parameters) {
 		final PreparedStatement stmt = getPreparedStatement(sql);
-		final List ret = readList(objectClass, stmt, parameters);
+		final List<T> ret = readList(objectClass, stmt, parameters);
 		if (closePreparedStatementsAfterRead) {
 			closePreparedStatement(stmt);
 		}
@@ -1536,17 +1542,18 @@ public final class Persist {
 	 * given object class. Only columns contained in the ResultSet will be set
 	 * into the object instances. If a given column can't be mapped to a target
 	 * object instance, a {@link PersistException} will be thrown.
-	 * 
+	 *
+     * <em>Passed ResultSet and PreparedStatement will be closed when ResultSetIterator is.</em>
 	 * @since 1.0
 	 */
-	public <T> Iterator<T> readIterator(final Class<T> objectClass, final ResultSet resultSet) {
+	public <T> ResultSetIterator<T> readIterator(final Class<T> objectClass, final ResultSet resultSet, final PreparedStatement preparedStatement) {
 
 		long begin = 0;
 		if (Log.isDebugEnabled(Log.PROFILING)) {
 			begin = System.currentTimeMillis();
 		}
 
-		final ResultSetIterator i = new ResultSetIterator(this, objectClass, resultSet, ResultSetIterator.TYPE_OBJECT);
+        final ResultSetIterator<T> i = new ObjectResultSetIterator<T>(this, objectClass, resultSet, preparedStatement);
 
 		if (Log.isDebugEnabled(Log.PROFILING)) {
 			final long end = System.currentTimeMillis();
@@ -1566,16 +1573,17 @@ public final class Persist {
 	 * PersistException will be thrown.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
+     * <em>Passed PreparedStatement will be closed when ResultSetIterator is.</em>
 	 * @since 1.0
 	 */
-	public <T> Iterator<T> readIterator(final Class<T> objectClass, final PreparedStatement statement,
+	public <T> ResultSetIterator<T> readIterator(final Class<T> objectClass, final PreparedStatement statement,
 			final Object...parameters) {
 		setParameters(statement, parameters);
 		try {
 			final ResultSet resultSet = statement.executeQuery();
-			return readIterator(objectClass, resultSet);
+			return readIterator(objectClass, resultSet, statement);
 		} catch (SQLException e) {
 			throw new RuntimeSQLException(e);
 		}
@@ -1590,16 +1598,14 @@ public final class Persist {
 	 * be thrown.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
-	 * 
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
+	 *
+     * <em>ResultSetIterator.close() should be called after use to release database objects.</em>
 	 * @since 1.0
 	 */
-	public <T> Iterator<T> readIterator(final Class<T> objectClass, final String sql, final Object...parameters) {
+	public <T> ResultSetIterator<T> readIterator(final Class<T> objectClass, final String sql, final Object...parameters) {
 		final PreparedStatement stmt = getPreparedStatement(sql);
-		final Iterator ret = readIterator(objectClass, stmt, parameters);
-		// don't close the prepared statement otherwise the result set in the
-		// iterator will be closed
-		return ret;
+		return readIterator(objectClass, stmt, parameters);
 	}
 
 	/**
@@ -1610,9 +1616,10 @@ public final class Persist {
 	 * be mapped to a target object instance, a {@link PersistException} will
 	 * be thrown.
 	 * 
+     * <em>ResultSetIterator.close() should be called after use to release database objects.</em>
 	 * @since 1.0
 	 */
-	public <T> Iterator<T> readIterator(final Class<T> objectClass, final String sql) {
+	public <T> ResultSetIterator<T> readIterator(final Class<T> objectClass, final String sql) {
 		return readIterator(objectClass, sql, (Object[]) null);
 	}
 
@@ -1620,9 +1627,10 @@ public final class Persist {
 	 * Returns an {@link java.util.Iterator} for a list of all objects in the
 	 * database mapped to the given object class.
 	 * 
+     * <em>ResultSetIterator.close() should be called after use to release database objects.</em>
 	 * @since 1.0
 	 */
-	public <T> Iterator<T> readIterator(final Class<T> objectClass) {
+	public <T> ResultSetIterator<T> readIterator(final Class<T> objectClass) {
 		final TableMapping mapping = getTableMapping(objectClass, "readIterator(Class)");
 		final String sql = mapping.getSelectAllSql();
 		return readIterator(objectClass, sql);
@@ -1655,7 +1663,7 @@ public final class Persist {
 	 * {@link #getValueFromResultSet(ResultSet, int, int)}.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link Persist#setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
 	 * @since 1.0
 	 */
@@ -1677,7 +1685,7 @@ public final class Persist {
 	 * {@link #getValueFromResultSet(ResultSet, int, int)}.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link Persist#setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
 	 * @since 1.0
 	 */
@@ -1750,7 +1758,7 @@ public final class Persist {
 			begin = System.currentTimeMillis();
 		}
 
-		final List ret = new ArrayList();
+		final List<Map<String, Object>> ret = new ArrayList<Map<String, Object>>();
 		try {
 			while (resultSet.next()) {
 				ret.add(loadMap(resultSet));
@@ -1776,7 +1784,7 @@ public final class Persist {
 	 * {@link #getValueFromResultSet(ResultSet, int, int)}.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
 	 * @since 1.0
 	 */
@@ -1799,7 +1807,7 @@ public final class Persist {
 	 * {@link #getValueFromResultSet(ResultSet, int, int)}.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
 	 * @since 1.0
 	 */
@@ -1836,10 +1844,11 @@ public final class Persist {
 	 * map according with the correspondence defined in
 	 * {@link #getValueFromResultSet(ResultSet, int, int)}.
 	 * 
+     * <em>Passed ResultSet and PreparedStatement will be closed when ResultSetIterator is.</em>
 	 * @since 1.0
 	 */
-	public Iterator readMapIterator(final ResultSet resultSet) {
-		return new ResultSetIterator(this, null, resultSet, ResultSetIterator.TYPE_MAP);
+	public ResultSetIterator<Map<String, Object>> readMapIterator(final ResultSet resultSet, final PreparedStatement preparedStatement) {
+        return new MapResultSetIterator(resultSet, preparedStatement);
 	}
 
 	/**
@@ -1852,15 +1861,16 @@ public final class Persist {
 	 * {@link #getValueFromResultSet(ResultSet, int, int)}.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link Persist#setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
+     * <em>Passed PreparedStatement will be closed when ResultSetIterator is.</em>
 	 * @since 1.0
 	 */
-	public Iterator readMapIterator(final PreparedStatement statement, final Object...parameters) {
-		setParameters(statement, parameters);
+	public ResultSetIterator<Map<String, Object>> readMapIterator(final PreparedStatement preparedStatement, final Object...parameters) {
+		setParameters(preparedStatement, parameters);
 		try {
-			final ResultSet resultSet = statement.executeQuery();
-			return readMapIterator(resultSet);
+			final ResultSet resultSet = preparedStatement.executeQuery();
+			return readMapIterator(resultSet, preparedStatement);
 		} catch (SQLException e) {
 			throw new RuntimeSQLException(e);
 		}
@@ -1876,11 +1886,12 @@ public final class Persist {
 	 * {@link #getValueFromResultSet(ResultSet, int, int)}.
 	 * <p>
 	 * Parameters will be set according with the correspondence defined in
-	 * {@link #setParameters(PreparedStatement, int[], Object[])}
+     * {@link} #setParameters(java.sql.PreparedStatement, int[], Object[])}
 	 * 
+     * <em>ResultSetIterator.close() should be called after use to release database objects.</em>
 	 * @since 1.0
 	 */
-	public Iterator readMapIterator(final String sql, final Object...parameters) {
+	public ResultSetIterator<Map<String, Object>> readMapIterator(final String sql, final Object...parameters) {
 
 		long begin = 0;
 		if (Log.isDebugEnabled(Log.PROFILING)) {
@@ -1888,16 +1899,12 @@ public final class Persist {
 		}
 
 		final PreparedStatement stmt = getPreparedStatement(sql);
-		final Iterator ret = readMapIterator(stmt, parameters);
+		final ResultSetIterator<Map<String, Object>> ret = readMapIterator(stmt, parameters);
 
 		if (Log.isDebugEnabled(Log.PROFILING)) {
 			final long end = System.currentTimeMillis();
 			Log.debug(Log.PROFILING, "readMapIterator in [" + (end - begin) + "ms]");
 		}
-
-        if(closePreparedStatementsAfterRead) {
-            closePreparedStatement(stmt);
-        }
 
 		return ret;
 	}
@@ -1912,8 +1919,124 @@ public final class Persist {
 	 * 
 	 * @since 1.0
 	 */
-	public Iterator readMapIterator(final String sql) {
+	public ResultSetIterator<Map<String, Object>> readMapIterator(final String sql) {
 		return readMapIterator(sql, (Object[]) null);
 	}
 
+    static class ObjectResultSetIterator<T> implements ResultSetIterator<T> {
+
+        private final Persist persist;
+        private final Class<T> objectClass;
+        private final ResultSet resultSet;
+        private final PreparedStatement preparedStatement;
+        private boolean hasNext = false;
+
+        ObjectResultSetIterator(final Persist persist, final Class<T> objectClass, final ResultSet resultSet, final PreparedStatement preparedStatement) {
+            this.persist = persist;
+            this.objectClass = objectClass;
+            this.resultSet = resultSet;
+            this.preparedStatement = preparedStatement;
+
+            try {
+                hasNext = resultSet.next();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+
+        public boolean hasNext() {
+            return hasNext;
+        }
+
+        public T next() {
+            try {
+                final T ret = persist.loadObject(objectClass, resultSet);
+
+                hasNext = resultSet.next();
+                return ret;
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+
+        public void remove() {
+            try {
+                this.resultSet.deleteRow();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+
+        @Override
+        public void close() {
+            try {
+                resultSet.close();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+
+            try {
+                preparedStatement.close();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+    }
+
+    static class MapResultSetIterator implements ResultSetIterator<Map<String, Object>> {
+
+        private final ResultSet resultSet;
+        private final PreparedStatement preparedStatement;
+
+        private boolean hasNext = false;
+
+        MapResultSetIterator(final ResultSet resultSet, final PreparedStatement preparedStatement) {
+            this.resultSet = resultSet;
+            this.preparedStatement = preparedStatement;
+
+            try {
+                hasNext = resultSet.next();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+
+        public boolean hasNext() {
+            return hasNext;
+        }
+
+        public Map<String, Object> next() {
+            try {
+                final Map<String, Object> ret = Persist.loadMap(resultSet);
+
+                hasNext = resultSet.next();
+                return ret;
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+
+        public void remove() {
+            try {
+                this.resultSet.deleteRow();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+
+        @Override
+        public void close() {
+            try {
+                resultSet.close();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+
+            try {
+                preparedStatement.close();
+            } catch (SQLException e) {
+                throw new RuntimeSQLException(e);
+            }
+        }
+    }
 }
