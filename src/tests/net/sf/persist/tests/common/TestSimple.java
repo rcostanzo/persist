@@ -10,24 +10,20 @@ import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import net.sf.persist.*;
 import net.sf.persist.tests.framework.ConnectionHelper;
 import net.sf.persist.tests.framework.DynamicBean;
 
-import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class TestSimple {
+    private static final Logger LOG = LoggerFactory.getLogger(TestSimple.class);
 
 	protected Connection connection = null;
 	protected Persist persist = null;
@@ -147,7 +143,7 @@ public abstract class TestSimple {
 					intCol, stringCol);
 			assertNull(simpleRead);
 		} else {
-			Logger.getLogger(this.getClass()).debug("This database does not support retrieval of auto generated keys");
+			LOG.debug("This database does not support retrieval of auto generated keys");
 		}
 
 	}
@@ -178,7 +174,7 @@ public abstract class TestSimple {
 			assertNull(simpleRead);
 			
 		} else {
-			Logger.getLogger(this.getClass()).debug("This database does not support retrieval of auto generated keys");
+			LOG.debug("This database does not support retrieval of auto generated keys");
 		}
 	}
 
@@ -203,7 +199,7 @@ public abstract class TestSimple {
 		persist.insertBatch(simple1, simple2, simple3);
 
 		List<Simple> list = persist.readList(Simple.class);
-		List<Simple> s = new ArrayList();
+		List<Simple> s = new ArrayList<Simple>();
 		s.add(simple1);
 		s.add(simple2);
 		s.add(simple3);
@@ -220,7 +216,7 @@ public abstract class TestSimple {
 		s3.setIntCol(simple3.getIntCol() + 1);
 		s3.setStringCol(simple3.getStringCol().toUpperCase());
 
-		s = new ArrayList();
+		s = new ArrayList<Simple>();
 		s.add(s1);
 		s.add(s2);
 		s.add(s3);
@@ -269,7 +265,7 @@ public abstract class TestSimple {
 		persist.insert(simple3);
 
 		List<Simple> list = persist.readList(Simple.class);
-		List s = new ArrayList();
+		List<Simple> s = new ArrayList<Simple>();
 		s.add(simple1);
 		s.add(simple2);
 		s.add(simple3);
@@ -488,8 +484,8 @@ public abstract class TestSimple {
 		
 		DefaultNameGuesser guesser = new DefaultNameGuesser();
 		
-		Set guessed = guesser.guessColumn("name");
-		Set expected = toSet(new String[] { "name", "names" });
+		Set<String> guessed = guesser.guessColumn("name");
+		Set<String> expected = toSet(new String[] { "name", "names" });
 		assertEquals(expected, guessed);
 		
 		guessed = guesser.guessColumn("nameC");
@@ -513,11 +509,9 @@ public abstract class TestSimple {
 		assertEquals(expected, guessed);		
 	}
 	
-	private static Set toSet(String[] values) {
-		Set set = new LinkedHashSet();
-		for (String value : values) {
-			set.add(value);
-		}
+	private static Set<String> toSet(String[] values) {
+		Set<String> set = new LinkedHashSet<String>();
+        set.addAll(Arrays.asList(values));
 		return set;
 	}
 

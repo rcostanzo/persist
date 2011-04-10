@@ -61,7 +61,6 @@
 		<mkdir dir="build/release" />
 		<jar destfile="build/release/persist-${build.version}.jar" basedir="build/work/bin">
 			<exclude name="**/tests/**"/>
-			<exclude name="log4j.properties"/>
 		</jar>
 	</target>
 	

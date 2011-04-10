@@ -2,67 +2,14 @@
 
 package net.sf.persist;
 
-import org.apache.log4j.Logger;
-
 /**
- * Wraps log4j using reflection to avoid runtime dependencies.
+ * Logging utilities.
  */
 public final class Log {
 
 	// avoid instantiation
 	private Log() {
 		// do nothing
-	}
-
-	public static final String ENGINE = "persist.engine";
-	public static final String PROFILING = "persist.profiling";
-	public static final String RESULTS = "persist.results";
-	public static final String PARAMETERS = "persist.parameters";
-
-	private static boolean log4jAvailable = false;
-	static {
-		try {
-			Class.forName("org.apache.log4j.Logger");
-			log4jAvailable = true;
-		} catch (ClassNotFoundException e) {
-			log4jAvailable = false;
-		}
-	}
-
-	public static void trace(final String name, final Object message) {
-		if (log4jAvailable) {
-			Logger.getLogger(name).trace(message);
-		}
-	}
-
-	public static boolean isTraceEnabled(final String name) {
-		return log4jAvailable && Logger.getLogger(name).isTraceEnabled();
-	}
-
-	public static void debug(final String name, final Object message) {
-		if (log4jAvailable) {
-			Logger.getLogger(name).debug(message);
-		}
-	}
-
-	public static boolean isDebugEnabled(final String name) {
-		return log4jAvailable && Logger.getLogger(name).isDebugEnabled();
-	}
-
-	public static void info(final String name, final Object message) {
-		if (log4jAvailable) {
-			Logger.getLogger(name).info(message);
-		}
-	}
-
-	public static boolean isInfoEnabled(final String name) {
-		return log4jAvailable && Logger.getLogger(name).isInfoEnabled();
-	}
-
-	public static void error(final String name, final Object message) {
-		if (log4jAvailable) {
-			Logger.getLogger(name).error(message);
-		}
 	}
 
 	/**
