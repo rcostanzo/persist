@@ -49,7 +49,10 @@ table that matches that class and create a mapping between fields and columns.
  List<Customer> list = persist.readList(Customer.class, "select * from customer where id > ?", 10);
 
  // fetch all customers and assign the ResultSet to an Iterator
- Iterator allCustomersIterator = persist.readIterator(Customer.class, "select * from customer");
+ ResultSetIterator<Customer> allCustomersIterator = persist.readIterator(Customer.class, "select * from customer");
+
+ // release database resources
+ allCustomersIterator.close();
 </pre>
 
 h3. POJOs not mapped to tables
@@ -87,7 +90,10 @@ types. Keys in the table are the names of the columns returned in lower case.
  List<Map<String,Object>> customerMapList = persist.readMapList("select * from customer");
 
  // fetch all customers and assign the ResultSet to an Iterator which maps rows to Map instances
- Iterator allCustomersIterator = persist.readMapIterator("select * from customer");
+ ResultSetIterator<Map<String, Object>> allCustomersIterator = persist.readMapIterator("select * from customer");
+
+ // release database resources
+ allCustomersIterator.close();
 </pre>
 
 h3. Java primitive types
