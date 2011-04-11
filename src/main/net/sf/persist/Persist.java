@@ -443,6 +443,7 @@ public final class Persist {
 	 * <li> java.sql.Timestamp: setTimestamp
 	 * <li> java.sql.Clob : setClob
 	 * <li> java.sql.Blob: setBlob
+     * <li> java.lang.Enum: setString
 	 * </ul>
 	 * 
 	 * @param stmt {@link java.sql.PreparedStatement} to have parameters set
@@ -597,6 +598,8 @@ public final class Persist {
 					stmt.setTime(i, (java.sql.Time) parameter);
 				} else if (type == java.sql.Timestamp.class) {
 					stmt.setTimestamp(i, (java.sql.Timestamp) parameter);
+                } else if (parameter instanceof java.lang.Enum) {
+                    stmt.setString(i, ((Enum)parameter).name());
 				} else {
 					// last resort; this should cover all database-specific
 					// object types
@@ -633,7 +636,7 @@ public final class Persist {
 				|| type == String.class || type == BigDecimal.class || type == java.util.Date.class
 				|| type == java.sql.Date.class || type == java.sql.Time.class || type == java.sql.Timestamp.class
 				|| type == java.io.InputStream.class || type == java.io.Reader.class || type == java.sql.Clob.class
-				|| type == java.sql.Blob.class || type == Object.class);
+				|| type == java.sql.Blob.class || Enum.class.isAssignableFrom(type) || type == Object.class);
 	}
 
 	/**
@@ -667,6 +670,7 @@ public final class Persist {
 	 * <li> java.sql.Timestamp: getTimestamp
 	 * <li> java.sql.Clob: getClob
 	 * <li> java.sql.Blob: getBlob
+     * <li> java.lang.Enum: getString
 	 * </ul>
 	 * <p>
 	 * null's will be respected for any non-native types. This means that if a
@@ -751,6 +755,8 @@ public final class Persist {
 				value = resultSet.getClob(column);
 			} else if (type == java.sql.Blob.class) {
 				value = resultSet.getBlob(column);
+            } else if (Enum.class.isAssignableFrom(type)) {
+                value = Enum.valueOf((Class<Enum>)type, resultSet.getString(column));
 			} else {
 				// this will work for database-specific types
 				value = resultSet.getObject(column);

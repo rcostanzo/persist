@@ -8,6 +8,7 @@ import java.sql.*;
 import java.util.Map;
 
 import static org.easymock.EasyMock.*;
+import static org.junit.Assert.*;
 
 public class MockTest {
     private Connection connection;
@@ -15,6 +16,7 @@ public class MockTest {
     private ResultSet tableMetadataResultSet;
     private ResultSet columnMetadataResultSet;
     private ResultSet primaryKeysMetadataResultSet;
+    private ResultSetMetaData resultSetMetaData;
     private PreparedStatement preparedStatement;
     private ResultSet resultSet;
 
@@ -25,6 +27,7 @@ public class MockTest {
         this.tableMetadataResultSet = createMock(ResultSet.class);
         this.columnMetadataResultSet = createMock(ResultSet.class);
         this.primaryKeysMetadataResultSet = createMock(ResultSet.class);
+        this.resultSetMetaData = createMock(ResultSetMetaData.class);
         this.preparedStatement = createMock(PreparedStatement.class);
         this.resultSet = createMock(ResultSet.class);
     }
@@ -91,13 +94,27 @@ public class MockTest {
 
         // mock setup complete
 
-        replay(connection, databaseMetaData, tableMetadataResultSet, columnMetadataResultSet, primaryKeysMetadataResultSet, preparedStatement, resultSet);
+        replay(connection, preparedStatement, resultSet);
 
         Persist persist = new Persist(connection);
         ResultSetIterator<Map<String, Object>> iterator = persist.readMapIterator("SELECT * FROM SIMPLE");
 
-        // read
-
         iterator.close();
+    }
+
+    @Test
+    public void testLoadObjectForEnum() throws SQLException {
+        expect(resultSet.getMetaData()).andReturn(resultSetMetaData);
+        expect(resultSetMetaData.getColumnCount()).andReturn(1);
+        expect(resultSet.getString(1)).andReturn("BLUE");
+
+        // mock setup complete
+
+        replay(connection, resultSetMetaData, resultSet);
+
+        Persist persist = new Persist(connection);
+        Color color = persist.loadObject(Color.class, resultSet);
+
+        assertEquals(Color.BLUE, color);
     }
 }

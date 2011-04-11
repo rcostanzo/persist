@@ -8,3 +8,5 @@ build/release
 *.iws
 *.ipr
 *.iml
+.DS_Store
+out
