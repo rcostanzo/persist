@@ -76,6 +76,8 @@ public final class Persist {
 	private String cacheName = DEFAULT_CACHE;
 	private NameGuesser nameGuesser = null;
 
+    private final ObjectFactory objectFactory;
+
 	static {
 		mappingCaches.put(DEFAULT_CACHE, new ConcurrentHashMap<Class, Mapping>());
 		nameGuessers.put(DEFAULT_CACHE, new DefaultNameGuesser());
@@ -96,15 +98,28 @@ public final class Persist {
 		this(DEFAULT_CACHE, connection);
 	}
 
+    /**
+     * Creates a Persist instance that will use the given cache name for
+     * table-object mappings.
+     *
+     * @param cacheName Name of the cache to be used
+     * @param connection {@link java.sql.Connection} object to be used
+     * @since 1.0
+     */
+    public Persist(String cacheName, Connection connection) {
+        this(cacheName, connection, new DefaultObjectFactory());
+    }
+
 	/**
 	 * Creates a Persist instance that will use the given cache name for
 	 * table-object mappings.
 	 * 
 	 * @param cacheName Name of the cache to be used
 	 * @param connection {@link java.sql.Connection} object to be used
+     * @param objectFactory factory for new objects that persist needs
 	 * @since 1.0
 	 */
-	public Persist(String cacheName, Connection connection) {
+	public Persist(String cacheName, Connection connection, ObjectFactory objectFactory) {
 
 		if (cacheName == null) {
 			cacheName = DEFAULT_CACHE;
@@ -120,6 +135,8 @@ public final class Persist {
 			this.nameGuesser = new DefaultNameGuesser();
 			nameGuessers.put(cacheName, this.nameGuesser);
 		}
+
+        this.objectFactory = objectFactory;
 
         ENGINE_LOG.debug("New instance for cache [{}] and connection [{}]", cacheName, connection);
 	}
@@ -988,11 +1005,15 @@ public final class Persist {
 
 			final Mapping mapping = getMapping(objectClass);
 
-			try {
-				ret = objectClass.newInstance();
-			} catch (Exception e) {
-				throw new PersistException(e);
-			}
+            try {
+                ret = (T)objectFactory.newInstance(objectClass);
+            } catch(ClassCastException e) {
+                throw new PersistException(e);
+            }
+
+            if(ret == null) {
+                throw new PersistException("ObjectFactory returned null");
+            }
 
 			for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
 				final String columnName = resultSetMetaData.getColumnName(i).toLowerCase();
@@ -1921,6 +1942,34 @@ public final class Persist {
 	public ResultSetIterator<Map<String, Object>> readMapIterator(final String sql) {
 		return readMapIterator(sql, (Object[]) null);
 	}
+
+    /**
+     * Used by Persist when creating new objects to read database records.
+     */
+    interface ObjectFactory {
+        /**
+         * Return a new instance of given class.
+         *
+         * @param clazz     instance class
+         * @return          instance or null, in case of errors
+         */
+        Object newInstance(Class clazz);
+    }
+
+    static class DefaultObjectFactory implements ObjectFactory {
+        @Override
+        public Object newInstance(Class clazz) {
+            try {
+                return clazz.newInstance();
+            } catch (InstantiationException e) {
+                ENGINE_LOG.warn("exception instantiating a new object for ObjectFactory", e);
+                return null;
+            } catch (IllegalAccessException e) {
+                ENGINE_LOG.warn("exception instantiating a new object for ObjectFactory", e);
+                return null;
+            }
+        }
+    }
 
     static class ObjectResultSetIterator<T> implements ResultSetIterator<T> {
 
