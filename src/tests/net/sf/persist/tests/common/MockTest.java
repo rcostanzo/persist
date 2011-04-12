@@ -117,4 +117,59 @@ public class MockTest {
 
         assertEquals(Color.BLUE, color);
     }
+
+    @Test
+    public void testNativeBooleanMapping() throws SQLException {
+        expect(connection.getMetaData()).andReturn(databaseMetaData);
+
+        expect(databaseMetaData.supportsGetGeneratedKeys()).andReturn(true);
+        expect(databaseMetaData.supportsBatchUpdates()).andReturn(false);
+        expect(databaseMetaData.getDatabaseProductName()).andReturn("MockDatabase");
+        expect(databaseMetaData.getTables(null, null, "SIMPLE", null)).andReturn(tableMetadataResultSet);
+
+        expect(tableMetadataResultSet.next()).andReturn(true);
+        tableMetadataResultSet.close();
+
+        expect(databaseMetaData.getColumns(null, null, "SIMPLE", "%")).andReturn(columnMetadataResultSet);
+
+        expect(columnMetadataResultSet.next()).andReturn(true);
+        expect(columnMetadataResultSet.getString(4)).andReturn("id");
+        expect(columnMetadataResultSet.next()).andReturn(true);
+        expect(columnMetadataResultSet.getString(4)).andReturn("complete");
+        expect(columnMetadataResultSet.next()).andReturn(false);
+
+        expect(databaseMetaData.getPrimaryKeys(null, null, "SIMPLE")).andReturn(primaryKeysMetadataResultSet);
+
+        expect(primaryKeysMetadataResultSet.next()).andReturn(true);
+        expect(primaryKeysMetadataResultSet.getString(4)).andReturn("id");
+        expect(primaryKeysMetadataResultSet.next()).andReturn(false);
+
+        expect(connection.prepareStatement("insert into SIMPLE(complete)values(?)")).andReturn(preparedStatement);
+
+        preparedStatement.setBoolean(1, true);
+        expect(preparedStatement.executeUpdate()).andReturn(1);
+        preparedStatement.close();
+
+        expect(connection.prepareStatement("update SIMPLE set complete=? where id=?")).andReturn(preparedStatement);
+
+        preparedStatement.setBoolean(1, false);
+        preparedStatement.setLong(2, 0);
+        expect(preparedStatement.executeUpdate()).andReturn(1);
+        preparedStatement.close();
+
+        // mock setup complete
+
+        replay(connection, databaseMetaData, tableMetadataResultSet, columnMetadataResultSet, primaryKeysMetadataResultSet, preparedStatement);
+
+        Simple12 simple = new Simple12();
+        simple.setComplete(true);
+
+        Persist persist = new Persist(connection);
+
+        persist.insert(simple);
+
+        simple.setComplete(false);
+
+        persist.update(simple);
+    }
 }

@@ -1170,15 +1170,13 @@ public final class Persist {
         try {
             int rowsModified = 0;
 
-            try {
-                setParameters(stmt, parameters);
-                rowsModified = stmt.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeSQLException("Error executing sql [" + sql + "] with parameters "
-                        + Arrays.toString(parameters) + ": " + e.getMessage(), e);
-            }
+            setParameters(stmt, parameters);
+            rowsModified = stmt.executeUpdate();
 
             return rowsModified;
+        } catch (SQLException e) {
+            throw new RuntimeSQLException("Error executing sql [" + sql + "] with parameters "
+                    + Arrays.toString(parameters) + ": " + e.getMessage(), e);
         } finally {
             closePreparedStatement(stmt);
         }

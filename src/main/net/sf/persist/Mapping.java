@@ -21,7 +21,7 @@ public abstract class Mapping {
 	 * NoTableAnnotation if the class has a NoTable annotation set, or
 	 * TableAnnotation otherwise.
 	 */
-	public static final Mapping getMapping(final DatabaseMetaData metaData, final Class objectClass,
+	public static Mapping getMapping(final DatabaseMetaData metaData, final Class objectClass,
 			final NameGuesser nameGuesser) {
 
 		// get @NoTable annotation
@@ -47,36 +47,53 @@ public abstract class Mapping {
 	 * Returns an array with maps for annotations, getters and setters. Keys in
 	 * each map are field names.
 	 */
-	protected static final Map[] getFieldsMaps(final Class objectClass) {
+	protected static Map[] getFieldsMaps(final Class objectClass) {
 		final Method[] methods = objectClass.getMethods();
+
+        // @TODO rewrite mapper to use property javabeans inspection to find properties.
 
 		// create map with all getters and setters
 
-		final Map<String, Method[]> allMethods = new HashMap();
+		final Map<String, Method[]> allMethods = new HashMap<String, Method[]>();
 		for (Method method : methods) {
 			final String name = method.getName();
-			final String suffix = name.substring(3);
 
-			Method[] getterSetter = allMethods.get(suffix);
-			if (getterSetter == null) {
-				getterSetter = new Method[2];
-				allMethods.put(suffix, getterSetter);
-			}
+            String suffix = null;
+            boolean getter = false;
 
-			if (name.startsWith("get")) {
-				getterSetter[0] = method;
-			} else if (name.startsWith("set")) {
-				getterSetter[1] = method;
-			}
+            if(name.startsWith("get")) {
+                suffix = name.substring(3);
+                getter = true;
+            } else if(name.startsWith("is")) {
+                suffix = name.substring(2);
+                getter = true;
+            } else if(name.startsWith("set")) {
+                suffix = name.substring(3);
+                getter = false;
+            }
+
+            if(suffix != null) {
+                Method[] getterSetter = allMethods.get(suffix);
+                if (getterSetter == null) {
+                    getterSetter = new Method[2];
+                    allMethods.put(suffix, getterSetter);
+                }
+
+                if(getter) {
+                    getterSetter[0] = method;
+                } else {
+                    getterSetter[1] = method;
+                }
+            }
 		}
 
 		// assemble annotations, getters and setters maps
 		// a field is only taken into consideration if it has a getter and a
 		// setter
 
-		final Map<String, net.sf.persist.annotations.Column> annotationsMap = new HashMap();
-		final Map<String, Method> gettersMap = new HashMap();
-		final Map<String, Method> settersMap = new HashMap();
+		final Map<String, net.sf.persist.annotations.Column> annotationsMap = new HashMap<String, net.sf.persist.annotations.Column>();
+		final Map<String, Method> gettersMap = new HashMap<String, Method>();
+		final Map<String, Method> settersMap = new HashMap<String, Method>();
 
 		for (String suffix : allMethods.keySet()) {
 
