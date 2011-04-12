@@ -1946,7 +1946,7 @@ public final class Persist {
     /**
      * Used by Persist when creating new objects to read database records.
      */
-    interface ObjectFactory {
+    public interface ObjectFactory {
         /**
          * Return a new instance of given class.
          *
