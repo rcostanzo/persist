@@ -773,8 +773,14 @@ public final class Persist {
 			} else if (type == java.sql.Blob.class) {
 				value = resultSet.getBlob(column);
             } else if (Enum.class.isAssignableFrom(type)) {
-                value = Enum.valueOf((Class<Enum>)type, resultSet.getString(column));
-			} else {
+                try {
+                    value = Enum.valueOf((Class<Enum>)type, resultSet.getString(column));
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeSQLException("retrieved unknown enum value", e);
+                } catch (NullPointerException e) {
+                    value = null;
+                }
+            } else {
 				// this will work for database-specific types
 				value = resultSet.getObject(column);
 			}

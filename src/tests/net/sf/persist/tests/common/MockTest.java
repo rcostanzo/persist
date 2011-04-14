@@ -2,6 +2,7 @@ package net.sf.persist.tests.common;
 
 import net.sf.persist.Persist;
 import net.sf.persist.ResultSetIterator;
+import net.sf.persist.RuntimeSQLException;
 import org.junit.*;
 
 import java.sql.*;
@@ -116,6 +117,36 @@ public class MockTest {
         Color color = persist.loadObject(Color.class, resultSet);
 
         assertEquals(Color.BLUE, color);
+    }
+
+    @Test
+    public void testLoadObjectForEnum2() throws SQLException {
+        expect(resultSet.getMetaData()).andReturn(resultSetMetaData);
+        expect(resultSetMetaData.getColumnCount()).andReturn(1);
+        expect(resultSet.getString(1)).andReturn(null);
+
+        // mock setup complete
+
+        replay(connection, resultSetMetaData, resultSet);
+
+        Persist persist = new Persist(connection);
+        Color color = persist.loadObject(Color.class, resultSet);
+
+        assertNull(color);
+    }
+
+    @Test(expected=RuntimeSQLException.class)
+    public void testLoadObjectForEnum3() throws SQLException {
+        expect(resultSet.getMetaData()).andReturn(resultSetMetaData);
+        expect(resultSetMetaData.getColumnCount()).andReturn(1);
+        expect(resultSet.getString(1)).andReturn("LION");
+
+        // mock setup complete
+
+        replay(connection, resultSetMetaData, resultSet);
+
+        Persist persist = new Persist(connection);
+        persist.loadObject(Color.class, resultSet);
     }
 
     @Test
