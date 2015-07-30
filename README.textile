@@ -289,7 +289,8 @@ The following tables depict the ResultSet.get and PreparedStatement.set methods 
 | Character/char | getString | setString |
 | Character[]/char[] | getString | setString |
 | Byte[]/byte[] | getBytes | setBytes |
-| String | setString | setString |
+| String | getString | setString |
+| Enum | getString | setString p|
 | java.math.BigDecimal | getBigDecimal | setBigDecimal |
 | java.io.Reader | getCharacterStream | setCharacterStream |
 | java.io.InputStream | getBinaryStream | setBinaryStream |
