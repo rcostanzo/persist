@@ -3,6 +3,8 @@
 
 package net.sf.persist.tests.common;
 
+import java.util.Objects;
+
 import net.sf.persist.annotations.NoTable;
 
 @NoTable
@@ -20,7 +22,12 @@ public class SimpleNoTable {
 
 	public long getIntCol() { return intCol; }
 	public void setIntCol(long intCol) { this.intCol = intCol; }
-	
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(stringCol, Long.valueOf(intCol));
+    }
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -46,10 +53,10 @@ public class SimpleNoTable {
 		return true;
 	}
 
-	public String toString() {
+	@Override
+    public String toString() {
 		return "id=" + id + " intCol=" + intCol + " stringCol=" + stringCol;
 	}
-	
 
 }
 

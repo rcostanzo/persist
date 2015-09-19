@@ -6,6 +6,11 @@
 	<classpathentry kind="lib" path="build/lib/testing/javassist.jar"/>
 	<classpathentry kind="lib" path="build/lib/testing/junit-4.3.1.jar"/>
 	<classpathentry kind="lib" path="build/lib/testing/jamon-2.6.jar"/>
-	<classpathentry kind="lib" path="build/lib/log4j-1.2.14.jar"/>
+	<classpathentry kind="lib" path="build/lib/slf4j-api-1.6.1.jar"/>
+	<classpathentry kind="lib" path="build/lib/testing/cglib-nodep-2.2.jar"/>
+	<classpathentry kind="lib" path="build/lib/testing/easymock-3.0.jar"/>
+	<classpathentry kind="lib" path="build/lib/testing/logback-classic-0.9.28.jar"/>
+	<classpathentry kind="lib" path="build/lib/testing/logback-core-0.9.28.jar"/>
+	<classpathentry kind="lib" path="build/lib/testing/objenesis-1.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

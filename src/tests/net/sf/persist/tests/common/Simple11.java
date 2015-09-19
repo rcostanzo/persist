@@ -2,6 +2,8 @@
 
 package net.sf.persist.tests.common;
 
+import java.util.Objects;
+
 import net.sf.persist.annotations.Column;
 import net.sf.persist.annotations.Table;
 
@@ -38,6 +40,11 @@ public class Simple11 {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(stringCol, Long.valueOf(intCol));
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj)
             return true;
@@ -62,6 +69,7 @@ public class Simple11 {
         return true;
     }
 
+    @Override
     public String toString() {
         return "id=" + id + " intCol=" + intCol + " stringCol=" + stringCol;
     }
