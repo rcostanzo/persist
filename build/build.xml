@@ -23,9 +23,7 @@
 
 	<!-- targets -->
 
-	<target name="release" depends="jar, src, doc">
-		<zip destfile="build/release/persist-${build.version}.zip" basedir="build/release" />
-	</target>
+	<target name="release" depends="jar, src, doc" />
 
 	<target name="compile">
 		
@@ -44,7 +42,7 @@
 		</copy>
 		
 		<!-- compile -->
-		<javac srcdir="build/work/src" destdir="build/work/bin" classpathref="project.classpath" debug="true" target="1.5"/>
+		<javac srcdir="build/work/src" destdir="build/work/bin" classpathref="project.classpath" debug="true" target="1.8"/>
 		
 		<!-- copy properties, js and txt files to bin -->
 		<copy todir="build/work/bin">
@@ -70,6 +68,9 @@
 		<copy todir="build/release/src">
 			<fileset dir="src/main" />
 		</copy>
+                <jar destfile="build/release/persist-${build.version}-sources.jar" basedir="build/release/src">
+                        <exclude name="**/tests/**"/>
+                </jar>
 	</target>
 
 	<target name="doc" depends="compile">
@@ -82,7 +83,7 @@
 			<fileset dir="build/work/src/main" defaultexcludes="yes">
 				<include name="**/*.java" />
 			</fileset>
-			<link href="http://java.sun.com/j2se/1.5/docs/api" offline="true" packagelistLoc="build/javadoc/j2se-1.5" />
+			<link href="http://java.sun.com/j2se/1.8/docs/api" offline="true" packagelistLoc="build/javadoc/j2se-1.8" />
 		</javadoc>
 		
 		<copy todir="build/release/doc" file="README.textile"/>
