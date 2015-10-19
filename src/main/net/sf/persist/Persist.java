@@ -977,12 +977,17 @@ public final class Persist {
 			final String columnName = columns[i];
 			final Method getter = mapping.getGetterForColumn(columnName);
 
-			Object value;
-			try {
-				value = getter.invoke(object);
-			} catch (Exception e) {
-				throw new PersistException("Could not access getter for column [" + columnName + "]", e);
-			}
+			Object value = null;
+
+			if (getter == null) {
+			    PARAMETERS_LOG.warn("No getter method mapping for column [" + columnName + "]. Defaulting to NULL");
+			} else {
+                try {
+                    value = getter.invoke(object);
+                } catch (Exception e) {
+                    throw new PersistException("Could not access getter for column [" + columnName + "]", e);
+                }
+            }
 
 			parameters[i] = value;
 		}
