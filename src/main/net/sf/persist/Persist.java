@@ -1042,21 +1042,21 @@ public final class Persist {
 				final String columnName = resultSetMetaData.getColumnName(i).toLowerCase();
 				final Method setter = mapping.getSetterForColumn(columnName);
 				if (setter == null) {
-					throw new PersistException("Column [" + columnName
-							+ "] from result set does not have a mapping to a field in ["
-							+ objectClass.getName() + "]");
-				}
+                    PARAMETERS_LOG.warn("Column [" + columnName
+                        + "] from result set does not have a mapping to a field in [" + objectClass.getName() + "]");
+                } else {
 
-				final Class type = setter.getParameterTypes()[0];
-				final Object value = getValueFromResultSet(resultSet, i, type);
+                    final Class<?> type = setter.getParameterTypes()[0];
+                    final Object value = getValueFromResultSet(resultSet, i, type);
 
-				try {
-					setter.invoke(ret, value);
-				} catch (Exception e) {
-					throw new PersistException("Error setting value [" + value + "]"
-							+ (value == null ? "" : " of type [" + value.getClass().getName() + "]") + " from column ["
-							+ columnName + "] using setter [" + setter + "]: " + e.getMessage(), e);
-				}
+                    try {
+                        setter.invoke(ret, value);
+                    } catch (Exception e) {
+                        throw new PersistException("Error setting value [" + value + "]"
+                            + (value == null ? "" : " of type [" + value.getClass().getName() + "]") + " from column ["
+                            + columnName + "] using setter [" + setter + "]: " + e.getMessage(), e);
+                    }
+                }
 			}
 
 		}
