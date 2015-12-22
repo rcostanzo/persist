@@ -141,6 +141,10 @@ public final class Persist {
         ENGINE_LOG.debug("New instance for cache [{}] and connection [{}]", cacheName, connection);
 	}
 
+    public static void flushMappings() {
+        mappingCaches = new ConcurrentHashMap<String, ConcurrentMap<Class, Mapping>>();
+    }
+
 	// ---------- name guesser ----------
 
 	/**
@@ -207,13 +211,11 @@ public final class Persist {
 			cacheName = DEFAULT_CACHE;
 		}
 
-		if (!mappingCaches.containsKey(cacheName)) {
-			// more than one map may end up being inserted here for the same
-			// cacheName, but this is not problematic
-			mappingCaches.put(cacheName, new ConcurrentHashMap<Class, Mapping>());
+        ConcurrentMap<Class, Mapping> mappingCache = new ConcurrentHashMap<Class, Mapping>();
+        ConcurrentMap<Class, Mapping> previousMappingCache = mappingCaches.putIfAbsent(cacheName, mappingCache);
+		if (previousMappingCache != null) {
+		    mappingCache = previousMappingCache;
 		}
-
-		final ConcurrentMap<Class, Mapping> mappingCache = mappingCaches.get(cacheName);
 
 		if (!mappingCache.containsKey(objectClass)) {
 			try {
