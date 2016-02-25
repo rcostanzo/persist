@@ -4,7 +4,6 @@ package net.sf.persist;
 
 import java.lang.reflect.Method;
 import java.sql.DatabaseMetaData;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,11 +34,7 @@ public abstract class Mapping {
 
         // otherwise, build a TableAnnotation
         else {
-            try {
-                return new TableMapping(metaData, objectClass, nameGuesser);
-            } catch (SQLException e) {
-                throw new PersistException(e);
-            }
+            return new AnnotationTableMapping(objectClass);
         }
     }
 
@@ -47,7 +42,7 @@ public abstract class Mapping {
      * Returns an array with maps for annotations, getters and setters. Keys in
      * each map are field names.
      */
-    protected static Map[] getFieldsMaps(final Class objectClass) {
+    protected static Map[] getFieldsMaps(final Class<?> objectClass) {
         final Method[] methods = objectClass.getMethods();
 
         // @TODO rewrite mapper to use property javabeans inspection to find properties.
@@ -180,7 +175,7 @@ public abstract class Mapping {
             }
         }
 
-        return new Map[] { annotationsMap, gettersMap, settersMap };
+        return new Map[] {annotationsMap, gettersMap, settersMap};
     }
 
 }
