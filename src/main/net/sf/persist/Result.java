@@ -9,20 +9,20 @@ import java.util.List;
  */
 public final class Result {
 
-	private final int rowsModified;
-	private final List<String> generatedKeys;
+    private final int rowsModified;
+    private final List<String> generatedKeys;
 
-	public Result(final int rowsModified, final List generatedKeys) {
-		this.rowsModified = rowsModified;
-		this.generatedKeys = generatedKeys;
-	}
+    public Result(final int rowsModified, final List generatedKeys) {
+        this.rowsModified = rowsModified;
+        this.generatedKeys = generatedKeys;
+    }
 
-	public int getRowsModified() {
-		return rowsModified;
-	}
+    public int getRowsModified() {
+        return rowsModified;
+    }
 
-	public List<String> getGeneratedKeys() {
-		return generatedKeys;
-	}
+    public List<String> getGeneratedKeys() {
+        return generatedKeys;
+    }
 
 }

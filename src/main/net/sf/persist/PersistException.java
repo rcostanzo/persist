@@ -5,16 +5,16 @@ package net.sf.persist;
 @SuppressWarnings("serial")
 public final class PersistException extends RuntimeException {
 
-	public PersistException(final Throwable cause) {
-		super(cause);
-	}
+    public PersistException(final Throwable cause) {
+        super(cause);
+    }
 
-	public PersistException(final String message) {
-		super(message);
-	}
+    public PersistException(final String message) {
+        super(message);
+    }
 
-	public PersistException(final String message, final Throwable cause) {
-		super(message, cause);
-	}
+    public PersistException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 
 }

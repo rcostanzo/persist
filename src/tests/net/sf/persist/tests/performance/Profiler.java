@@ -17,20 +17,20 @@ import javassist.Translator;
  */
 public class Profiler {
 
-	public static void main(String[] args) throws Throwable {
-		
-		// add translator to class loader
-		Translator t = new JamonTranslator();
-		ClassPool pool = ClassPool.getDefault();
-		Loader cl = new Loader();
-		cl.addTranslator(pool, t);
-		
-		// execute main class using the class loader
-		// let it receive args[] as if it was invoked directly
-		String[] argsShifted = new String[args.length-1];
-		System.arraycopy(args, 1, argsShifted, 0, args.length-1);
-		cl.run(args[0], argsShifted);
-	}
+    public static void main(String[] args) throws Throwable {
+        
+        // add translator to class loader
+        Translator t = new JamonTranslator();
+        ClassPool pool = ClassPool.getDefault();
+        Loader cl = new Loader();
+        cl.addTranslator(pool, t);
+        
+        // execute main class using the class loader
+        // let it receive args[] as if it was invoked directly
+        String[] argsShifted = new String[args.length-1];
+        System.arraycopy(args, 1, argsShifted, 0, args.length-1);
+        cl.run(args[0], argsShifted);
+    }
 
 }
 
@@ -39,29 +39,29 @@ public class Profiler {
  */
 class JamonTranslator implements Translator {
    
-	public void start(ClassPool pool) throws NotFoundException, CannotCompileException {
-		// do nothing
-	}
+    public void start(ClassPool pool) throws NotFoundException, CannotCompileException {
+        // do nothing
+    }
    
     public void onLoad(ClassPool pool, String classname) throws NotFoundException, CannotCompileException {
-    	
-    	if (classname.equals("net.sf.persist.Persist")) /* || classname.endsWith("net.sf.persist.TableMapping")) */ {
-    		
-	        CtClass cc = pool.get(classname);
-	        for (CtMethod method : cc.getDeclaredMethods()) {
-	        	addJamonMonitor(cc, method);
-	        }
         
-    	}
+        if (classname.equals("net.sf.persist.Persist")) /* || classname.endsWith("net.sf.persist.TableMapping")) */ {
+            
+            CtClass cc = pool.get(classname);
+            for (CtMethod method : cc.getDeclaredMethods()) {
+                addJamonMonitor(cc, method);
+            }
+        
+        }
     }
     
     private static void addJamonMonitor(CtClass cls, CtMethod method) throws NotFoundException, CannotCompileException {
-    	
-    	// see http://www.ibm.com/developerworks/java/library/j-dyn0916.html
+        
+        // see http://www.ibm.com/developerworks/java/library/j-dyn0916.html
  
          //  rename old method to synthetic name, then duplicate the method with original name for use as interceptor
          String oname = method.getName();
-    	 String nname = oname+"$impl";
+         String nname = oname+"$impl";
          method.setName(nname);
          CtMethod mnew = CtNewMethod.copy(method, oname, cls, null);
          

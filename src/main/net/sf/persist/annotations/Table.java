@@ -14,9 +14,9 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Table {
 
-	/**
-	 * Name of the table mapped to the class.
-	 */
-	String name();
+    /**
+     * Name of the table mapped to the class.
+     */
+    String name();
 
 }

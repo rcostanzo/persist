@@ -9,10 +9,10 @@ import java.util.Set;
  */
 public interface NameGuesser {
 
-	/**
-	 * Given a field or class name, return a Set with corresponding guessed
-	 * names in the database.
-	 */
-	public Set<String> guessColumn(String fieldOrClassName);
+    /**
+     * Given a field or class name, return a Set with corresponding guessed
+     * names in the database.
+     */
+    public Set<String> guessColumn(String fieldOrClassName);
 
 }
