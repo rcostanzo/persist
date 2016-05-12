@@ -1046,7 +1046,7 @@ public final class Persist {
             }
 
             for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
-                final String columnName = resultSetMetaData.getColumnName(i).toLowerCase();
+                final String columnName = resultSetMetaData.getColumnLabel(i).toLowerCase();
                 final Method setter = mapping.getSetterForColumn(columnName);
                 if (setter == null) {
                     PARAMETERS_LOG.warn("Column [" + columnName
@@ -1089,7 +1089,7 @@ public final class Persist {
         final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
 
         for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
-            final String columnName = resultSetMetaData.getColumnName(i).toLowerCase();
+            final String columnName = resultSetMetaData.getColumnLabel(i).toLowerCase();
             final int type = resultSetMetaData.getColumnType(i);
             final Object value = getValueFromResultSet(resultSet, i, type);
             ret.put(columnName, value);
