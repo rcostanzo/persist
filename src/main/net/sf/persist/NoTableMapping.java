@@ -29,6 +29,8 @@ public class NoTableMapping extends Mapping {
     // map possible column names to field names
     private final Map<String, String> columnsMap;
 
+    private final Map<String, net.sf.persist.annotations.Column> annotationsMap;
+
     public NoTableMapping(Class objectClass, NameGuesser nameGuesser) {
 
         checkAnnotation(objectClass);
@@ -37,7 +39,7 @@ public class NoTableMapping extends Mapping {
 
         // get the list of annotations, getters and setters
         Map[] fieldsMaps = Mapping.getFieldsMaps(objectClass);
-        final Map<String, net.sf.persist.annotations.Column> annotationsMap = fieldsMaps[0];
+        annotationsMap = fieldsMaps[0];
         gettersMap = fieldsMaps[1];
         settersMap = fieldsMaps[2];
 
@@ -114,7 +116,11 @@ public class NoTableMapping extends Mapping {
     @Override
     public Method getSetterForColumn(String columnName) {
         String fieldName = getFieldNameForColumn(columnName);
-        return settersMap.get(fieldName);
+        try {
+            return settersMap.get(fieldName);
+        } catch (NullPointerException e) {
+            throw new PersistException("Could not find setter for columnn with field name [" + fieldName + "]");
+        }
     }
 
     /**
@@ -126,7 +132,22 @@ public class NoTableMapping extends Mapping {
     @Override
     public Method getGetterForColumn(String columnName) {
         String fieldName = getFieldNameForColumn(columnName);
-        return gettersMap.get(fieldName);
+        try {
+            return gettersMap.get(fieldName);
+        } catch (NullPointerException e) {
+            throw new PersistException("Could not find getter for columnn with field name [" + fieldName + "]");
+        }
+    }
+
+    @Override
+    public Class<?> getOptionalSubType(String columnName) {
+        String fieldName = getFieldNameForColumn(columnName);
+        try {
+            return annotationsMap.get(fieldName).optionalSubType();
+        } catch (NullPointerException e) {
+            throw new PersistException(
+                "Could not find optional subtype for columnn with field name [" + fieldName + "]");
+        }
     }
 
     /**

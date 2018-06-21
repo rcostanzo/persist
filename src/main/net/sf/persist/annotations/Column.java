@@ -33,4 +33,10 @@ public @interface Column {
      * and reading by primary key.
      */
     boolean primaryKey() default false;
+
+    /**
+     * If the getter/setter use optional values, the subtype must be explicitly stated due to Java's generic
+     * subtype handling.
+     */
+    Class<?> optionalSubType() default Void.class;
 }

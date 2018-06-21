@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -68,8 +69,8 @@ public final class Persist {
     private PreparedStatement lastPreparedStatement = null;
     private boolean closePreparedStatementsAfterRead = true;
 
-    private static ConcurrentMap<String, ConcurrentMap<Class, Mapping>> mappingCaches = new ConcurrentHashMap<String, ConcurrentMap<Class, Mapping>>();
-    private static ConcurrentMap<String, NameGuesser> nameGuessers = new ConcurrentHashMap<String, NameGuesser>();
+    private static ConcurrentMap<String, ConcurrentMap<Class, Mapping>> mappingCaches = new ConcurrentHashMap<>();
+    private static ConcurrentMap<String, NameGuesser> nameGuessers = new ConcurrentHashMap<>();
 
     private static final String DEFAULT_CACHE = "default cache";
 
@@ -142,7 +143,7 @@ public final class Persist {
     }
 
     public static void flushMappings() {
-        mappingCaches = new ConcurrentHashMap<String, ConcurrentMap<Class, Mapping>>();
+        mappingCaches = new ConcurrentHashMap<>();
     }
 
     // ---------- name guesser ----------
@@ -211,7 +212,7 @@ public final class Persist {
             cacheName = DEFAULT_CACHE;
         }
 
-        ConcurrentMap<Class, Mapping> mappingCache = new ConcurrentHashMap<Class, Mapping>();
+        ConcurrentMap<Class, Mapping> mappingCache = new ConcurrentHashMap<>();
         ConcurrentMap<Class, Mapping> previousMappingCache = mappingCaches.putIfAbsent(cacheName, mappingCache);
         if (previousMappingCache != null) {
             mappingCache = previousMappingCache;
@@ -487,7 +488,12 @@ public final class Persist {
 
         for (int i = 1; i <= parameters.length; i++) {
 
-            final Object parameter = parameters[i - 1];
+            Object parameter = parameters[i - 1];
+
+            if (parameter != null && parameter.getClass() == Optional.class) {
+                Optional<?> instanceOfParameter = (Optional<?>) parameter;
+                parameter = instanceOfParameter.orElse(null);
+            }
 
             if (parameter == null) {
 
@@ -712,7 +718,7 @@ public final class Persist {
      * for a null value from the {@link java.sql.ResultSet}.
      *
      * @param resultSet {@link java.sql.ResultSet} (positioned in the row to be
-     * processed)
+     *            processed)
      * @param column column index in the result set (starting with 1)
      * @param type {@link java.lang.Class} of the object to be returned
      *
@@ -725,7 +731,6 @@ public final class Persist {
         Object value;
 
         try {
-
             if (type == boolean.class) {
                 value = resultSet.getBoolean(column);
             } else if (type == Boolean.class) {
@@ -815,6 +820,15 @@ public final class Persist {
         }
 
         return (T)value;
+    }
+
+    public static Optional<?> getValueFromResultSetOptional(final ResultSet resultSet, final int column,
+        final Class<?> optionalSubType) {
+        if (getValueFromResultSet(resultSet, column, optionalSubType) == null) {
+            return Optional.empty();
+        } else {
+            return Optional.of(getValueFromResultSet(resultSet, column, optionalSubType));
+        }
     }
 
     /**
@@ -1031,8 +1045,8 @@ public final class Persist {
         }
 
         // for beans
+        // TODO optional
         else {
-
             final Mapping mapping = getMapping(objectClass);
 
             try {
@@ -1046,15 +1060,34 @@ public final class Persist {
             }
 
             for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
+
                 final String columnName = resultSetMetaData.getColumnLabel(i).toLowerCase();
                 final Method setter = mapping.getSetterForColumn(columnName);
+
                 if (setter == null) {
                     PARAMETERS_LOG.warn("Column [" + columnName
                         + "] from result set does not have a mapping to a field in [" + objectClass.getName() + "]");
                 } else {
 
                     final Class<?> type = setter.getParameterTypes()[0];
-                    final Object value = getValueFromResultSet(resultSet, i, type);
+                    final Class<?> optionalSubType = mapping.getOptionalSubType(columnName);
+
+                    // figure out these exception texts
+                    if ((type == Optional.class) && (optionalSubType == Void.class)) {
+                        throw new PersistException(
+                            "Column [" + columnName + "] was Optional but optionalSubType was Void.class");
+                    } else if ((type != Optional.class) && (optionalSubType != Void.class)) {
+                        PARAMETERS_LOG.error("Column type was not Optional but optionalSubType was not Void.class");
+                    }
+
+                    Object value;
+
+                    if (type == Optional.class) {
+                        value = getValueFromResultSetOptional(resultSet, i, optionalSubType);
+                    } else {
+                        value = getValueFromResultSet(resultSet, i, type);
+                    }
+
 
                     try {
                         setter.invoke(ret, value);
@@ -1085,7 +1118,7 @@ public final class Persist {
      */
     public static Map<String, Object> loadMap(final ResultSet resultSet) throws SQLException {
 
-        final Map<String, Object> ret = new LinkedHashMap<String, Object>();
+        final Map<String, Object> ret = new LinkedHashMap<>();
         final ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
 
         for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
@@ -1391,7 +1424,7 @@ public final class Persist {
      *
      * @since 1.0
      */
-    public <T> T read(final Class<T> objectClass, final String sql, final Object...parameters) {
+    public <T> T read(final Class<T> objectClass, final String sql, final Object... parameters) {
         final PreparedStatement stmt = getPreparedStatement(sql);
         return read(objectClass, stmt, parameters);
     }
@@ -1409,7 +1442,7 @@ public final class Persist {
      *
      * @since 1.0
      */
-    public <T> T read(final Class<T> objectClass, final PreparedStatement statement, final Object...parameters) {
+    public <T> T read(final Class<T> objectClass, final PreparedStatement statement, final Object... parameters) {
         try {
             setParameters(statement, parameters);
             final ResultSet resultSet = statement.executeQuery();
@@ -1463,7 +1496,7 @@ public final class Persist {
      *
      * @since 1.0
      */
-    public <T> T readByPrimaryKey(final Class<T> objectClass, final Object...primaryKeyValues) {
+    public <T> T readByPrimaryKey(final Class<T> objectClass, final Object... primaryKeyValues) {
         final AnnotationTableMapping mapping = getTableMapping(objectClass, "readByPrimaryKey()");
         final String sql = mapping.getSelectSql();
         return read(objectClass, sql, primaryKeyValues);
@@ -1487,7 +1520,7 @@ public final class Persist {
             begin = System.currentTimeMillis();
         }
 
-        final List<T> ret = new ArrayList<T>();
+        final List<T> ret = new ArrayList<>();
         try {
             while (resultSet.next()) {
                 ret.add(loadObject(objectClass, resultSet));
@@ -1540,7 +1573,7 @@ public final class Persist {
      *
      * @since 1.0
      */
-    public <T> List<T> readList(final Class<T> objectClass, final String sql, final Object...parameters) {
+    public <T> List<T> readList(final Class<T> objectClass, final String sql, final Object... parameters) {
         final PreparedStatement stmt = getPreparedStatement(sql);
         try {
             return readList(objectClass, stmt, parameters);
@@ -1588,14 +1621,15 @@ public final class Persist {
      * <em>Passed ResultSet and PreparedStatement will be closed when ResultSetIterator is.</em>
      * @since 1.0
      */
-    public <T> ResultSetIterator<T> readIterator(final Class<T> objectClass, final ResultSet resultSet, final PreparedStatement preparedStatement) {
+    public <T> ResultSetIterator<T> readIterator(final Class<T> objectClass, final ResultSet resultSet,
+        final PreparedStatement preparedStatement) {
 
         long begin = 0;
         if (PROFILING_LOG.isDebugEnabled()) {
             begin = System.currentTimeMillis();
         }
 
-        final ResultSetIterator<T> i = new ObjectResultSetIterator<T>(this, objectClass, resultSet, preparedStatement);
+        final ResultSetIterator<T> i = new ObjectResultSetIterator<>(this, objectClass, resultSet, preparedStatement);
 
         if (PROFILING_LOG.isDebugEnabled()) {
             final long end = System.currentTimeMillis();
@@ -1801,7 +1835,7 @@ public final class Persist {
             begin = System.currentTimeMillis();
         }
 
-        final List<Map<String, Object>> ret = new ArrayList<Map<String, Object>>();
+        final List<Map<String, Object>> ret = new ArrayList<>();
         try {
             while (resultSet.next()) {
                 ret.add(loadMap(resultSet));
@@ -2004,7 +2038,8 @@ public final class Persist {
         private final PreparedStatement preparedStatement;
         private boolean hasNext = false;
 
-        ObjectResultSetIterator(final Persist persist, final Class<T> objectClass, final ResultSet resultSet, final PreparedStatement preparedStatement) {
+        ObjectResultSetIterator(final Persist persist, final Class<T> objectClass, final ResultSet resultSet,
+            final PreparedStatement preparedStatement) {
             this.persist = persist;
             this.objectClass = objectClass;
             this.resultSet = resultSet;

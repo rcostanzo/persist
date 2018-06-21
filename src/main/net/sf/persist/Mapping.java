@@ -13,6 +13,8 @@ public abstract class Mapping {
 
     public abstract Method getSetterForColumn(String columnName);
 
+    public abstract Class<?> getOptionalSubType(String columnName);
+
     // ---------- utility methods ----------
 
     /**
@@ -49,7 +51,7 @@ public abstract class Mapping {
 
         // create map with all getters and setters
 
-        final Map<String, Method[]> allMethods = new HashMap<String, Method[]>();
+        final Map<String, Method[]> allMethods = new HashMap<>();
         for (Method method : methods) {
             final String name = method.getName();
 
@@ -86,9 +88,10 @@ public abstract class Mapping {
         // a field is only taken into consideration if it has a getter and a
         // setter
 
-        final Map<String, net.sf.persist.annotations.Column> annotationsMap = new HashMap<String, net.sf.persist.annotations.Column>();
-        final Map<String, Method> gettersMap = new HashMap<String, Method>();
-        final Map<String, Method> settersMap = new HashMap<String, Method>();
+        final Map<String, net.sf.persist.annotations.Column> annotationsMap = new HashMap<>();
+        final Map<String, Method> gettersMap = new HashMap<>();
+        final Map<String, Method> settersMap = new HashMap<>();
+        final Map<String, Class<?>> optionalSubTypeMap = new HashMap<>();
 
         for (String suffix : allMethods.keySet()) {
 
