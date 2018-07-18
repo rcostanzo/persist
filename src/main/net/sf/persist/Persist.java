@@ -1045,7 +1045,6 @@ public final class Persist {
         }
 
         // for beans
-        // TODO optional
         else {
             final Mapping mapping = getMapping(objectClass);
 
@@ -1072,7 +1071,6 @@ public final class Persist {
                     final Class<?> type = setter.getParameterTypes()[0];
                     final Class<?> optionalSubType = mapping.getOptionalSubType(columnName);
 
-                    // figure out these exception texts
                     if ((type == Optional.class) && (optionalSubType == Void.class)) {
                         throw new PersistException(
                             "Column [" + columnName + "] was Optional but optionalSubType was Void.class");

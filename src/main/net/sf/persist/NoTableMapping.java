@@ -4,7 +4,10 @@ package net.sf.persist;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -115,12 +118,16 @@ public class NoTableMapping extends Mapping {
      */
     @Override
     public Method getSetterForColumn(String columnName) {
-        String fieldName = getFieldNameForColumn(columnName);
-        try {
-            return settersMap.get(fieldName);
-        } catch (NullPointerException e) {
-            throw new PersistException("Could not find setter for columnn with field name [" + fieldName + "]");
+        final Optional<String> fieldName = Optional.ofNullable(columnsMap.get(columnName.toLowerCase(Locale.ENGLISH)));
+        if (!fieldName.isPresent()) {
+            throw new NoSuchElementException(
+                "Could not find field name corresponding to column name [" + columnName + "]");
         }
+        final Optional<Method> setterForFieldName = Optional.ofNullable(settersMap.get(fieldName.get()));
+        if (!setterForFieldName.isPresent()) {
+            throw new NoSuchElementException("Could not find setter for columnn with field name [" + fieldName + "]");
+        }
+        return setterForFieldName.get();
     }
 
     /**
@@ -131,23 +138,32 @@ public class NoTableMapping extends Mapping {
      */
     @Override
     public Method getGetterForColumn(String columnName) {
-        String fieldName = getFieldNameForColumn(columnName);
-        try {
-            return gettersMap.get(fieldName);
-        } catch (NullPointerException e) {
-            throw new PersistException("Could not find getter for columnn with field name [" + fieldName + "]");
+        final Optional<String> fieldName = Optional.ofNullable(columnsMap.get(columnName.toLowerCase(Locale.ENGLISH)));
+        if (!fieldName.isPresent()) {
+            throw new NoSuchElementException(
+                "Could not find field name corresponding to column name [" + columnName + "]");
         }
+        final Optional<Method> getterForFieldName = Optional.ofNullable(gettersMap.get(fieldName.get()));
+        if (!getterForFieldName.isPresent()) {
+            throw new NoSuchElementException("Could not find getter for columnn with field name [" + fieldName + "]");
+        }
+        return getterForFieldName.get();
     }
 
     @Override
     public Class<?> getOptionalSubType(String columnName) {
-        String fieldName = getFieldNameForColumn(columnName);
-        try {
-            return annotationsMap.get(fieldName).optionalSubType();
-        } catch (NullPointerException e) {
-            throw new PersistException(
+        final Optional<String> fieldName = Optional.ofNullable(columnsMap.get(columnName.toLowerCase(Locale.ENGLISH)));
+        if (!fieldName.isPresent()) {
+            throw new NoSuchElementException(
+                "Could not find field name corresponding to column name [" + columnName + "]");
+        }
+        final Optional<Class<?>> optSubTypeForFieldName =
+            Optional.ofNullable(annotationsMap.get(fieldName.get()).optionalSubType());
+        if (!optSubTypeForFieldName.isPresent()) {
+            throw new NoSuchElementException(
                 "Could not find optional subtype for columnn with field name [" + fieldName + "]");
         }
+        return optSubTypeForFieldName.get();
     }
 
     /**
